@@ -3,28 +3,62 @@
 <head>
   <meta charset="UTF-8" />
   <title>Time Zone Comparison</title>
+  <style>
+    body {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      text-align: center;
+      padding: 2rem;
+    }
+    input, button {
+      padding: 0.5rem 1rem;
+      margin: 0.5rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+    button {
+      background-color: #fbbf24; /* gold-ish */
+      color: #333;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #f59e0b;
+    }
+    .result {
+      margin-top: 2rem;
+      font-size: 1.5rem;
+      background: rgba(255, 255, 255, 0.15);
+      padding: 1rem;
+      border-radius: 12px;
+      display: inline-block;
+    }
+  </style>
 </head>
 <body>
   <h1>Time Zone Comparison</h1>
-  <form method="POST">
-    <label>Enter city name:</label>
-    <input type="text" name="city" required />
+
+  <form method="post">
+    <input type="text" name="city" placeholder="Enter city timezone e.g. Europe/Warsaw" required />
     <button type="submit">Get Time</button>
   </form>
 
-  {% if error %}
-    <p style="color: red;">{{ error }}</p>
-  {% endif %}
+  {% if city_time %}
+  <div class="result">
+    <div><strong>Your Local Time:</strong> <span id="local-time">Loading...</span></div>
+    <div><strong>{{ city_name }} Time:</strong> {{ city_time }}</div>
+  </div>
 
-  {% if city_time and local_time %}
-    <h2>Time in {{ city }}:</h2>
-    <p>{{ city_time.strftime('%Y-%m-%d %H:%M:%S') }} ({{ city_time.tzname() }})</p>
-
-    <h2>Your local time:</h2>
-    <p>{{ local_time.strftime('%Y-%m-%d %H:%M:%S') }} ({{ local_time.tzname() }})</p>
-
-    <h3>Time difference:</h3>
-    <p>{{ time_diff }} hours</p>
+  <script>
+    function updateLocalTime() {
+      const now = new Date();
+      document.getElementById('local-time').textContent = now.toLocaleString();
+    }
+    updateLocalTime();
+    setInterval(updateLocalTime, 1000);
+  </script>
   {% endif %}
 </body>
 </html>
