@@ -1,28 +1,30 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>City Time Comparison</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <meta charset="UTF-8" />
+  <title>Time Zone Comparison</title>
 </head>
 <body>
-    <div class="container">
-        <h1>🌍 Time Zone Comparison</h1>
-        <form method="POST">
-            <input type="text" name="city" placeholder="Enter city name">
-            <button type="submit">Check Time</button>
-        </form>
+  <h1>Time Zone Comparison</h1>
+  <form method="POST">
+    <label>Enter city name:</label>
+    <input type="text" name="city" required />
+    <button type="submit">Get Time</button>
+  </form>
 
-        {% if error %}
-            <p class="error">{{ error }}</p>
-        {% endif %}
+  {% if error %}
+    <p style="color: red;">{{ error }}</p>
+  {% endif %}
 
-        {% if city_time and local_time %}
-            <div class="result">
-                <h2>Your Local Time: {{ local_time.strftime('%Y-%m-%d %H:%M:%S') }}</h2>
-                <h2>City Time: {{ city_time.strftime('%Y-%m-%d %H:%M:%S') }}</h2>
-                <p>Time Difference: {{ ((city_time - local_time).total_seconds() / 3600)|round(1) }} hours</p>
-            </div>
-        {% endif %}
-    </div>
+  {% if city_time and local_time %}
+    <h2>Time in {{ city }}:</h2>
+    <p>{{ city_time.strftime('%Y-%m-%d %H:%M:%S') }} ({{ city_time.tzname() }})</p>
+
+    <h2>Your local time:</h2>
+    <p>{{ local_time.strftime('%Y-%m-%d %H:%M:%S') }} ({{ local_time.tzname() }})</p>
+
+    <h3>Time difference:</h3>
+    <p>{{ time_diff }} hours</p>
+  {% endif %}
 </body>
 </html>
