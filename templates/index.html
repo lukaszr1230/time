@@ -1,30 +1,28 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8" />
-    <title>Time Compare App</title>
+    <title>City Time Comparison</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>Compare Time in Your City and Another City</h1>
+    <div class="container">
+        <h1>🌍 Time Zone Comparison</h1>
+        <form method="POST">
+            <input type="text" name="city" placeholder="Enter city name">
+            <button type="submit">Check Time</button>
+        </form>
 
-    <form method="POST" id="time-form">
-        <label for="city">Enter city name:</label>
-        <input type="text" id="city" name="city" value="{{ city }}" required />
-        <button type="submit">Get Time</button>
-    </form>
+        {% if error %}
+            <p class="error">{{ error }}</p>
+        {% endif %}
 
-    {% if error %}
-        <p style="color:red;">{{ error }}</p>
-    {% endif %}
-
-    {% if city_time %}
-        <p>Current time in {{ city }}: <strong>{{ city_time }}</strong></p>
-
-        <button id="compare-btn">Compare with your local time</button>
-
-        <p id="comparison-result"></p>
-    {% endif %}
-
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+        {% if city_time and local_time %}
+            <div class="result">
+                <h2>Your Local Time: {{ local_time.strftime('%Y-%m-%d %H:%M:%S') }}</h2>
+                <h2>City Time: {{ city_time.strftime('%Y-%m-%d %H:%M:%S') }}</h2>
+                <p>Time Difference: {{ ((city_time - local_time).total_seconds() / 3600)|round(1) }} hours</p>
+            </div>
+        {% endif %}
+    </div>
 </body>
 </html>
