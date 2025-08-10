@@ -3,14 +3,18 @@ import requests
 
 app = Flask(__name__)
 
+import requests
+
 def get_city_time(city):
-    # Use worldtimeapi to get time for the city
-    url = f"http://worldtimeapi.org/api/timezone/{city}"
-    resp = requests.get(url)
-    if resp.status_code == 200:
+    url = f"https://worldtimeapi.org/api/timezone/{city}"
+    try:
+        resp = requests.get(url, timeout=5)  # add timeout
+        resp.raise_for_status()  # raise error on bad status codes
         data = resp.json()
         return data.get("datetime", "Unknown time")
-    else:
+    except requests.exceptions.RequestException as e:
+        # log error if you want, then return friendly message
+        print(f"Error fetching time: {e}")
         return "Could not get time"
 
 @app.route("/", methods=["GET", "POST"])
