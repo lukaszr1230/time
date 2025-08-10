@@ -1,64 +1,80 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Time Zone Comparison</title>
-  <style>
-    body {
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      color: white;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      text-align: center;
-      padding: 2rem;
-    }
-    input, button {
-      padding: 0.5rem 1rem;
-      margin: 0.5rem;
-      border: none;
-      border-radius: 8px;
-      font-size: 1rem;
-    }
-    button {
-      background-color: #fbbf24; /* gold-ish */
-      color: #333;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
-    button:hover {
-      background-color: #f59e0b;
-    }
-    .result {
-      margin-top: 2rem;
-      font-size: 1.5rem;
-      background: rgba(255, 255, 255, 0.15);
-      padding: 1rem;
-      border-radius: 12px;
-      display: inline-block;
-    }
-  </style>
+    <meta charset="UTF-8" />
+    <title>City Time Viewer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 480px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+        .time-box {
+            background: #f0f0f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 15px;
+            font-size: 1.3em;
+            text-align: center;
+        }
+        .error {
+            color: red;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        input[type="text"] {
+            width: 70%;
+            padding: 8px;
+            font-size: 1em;
+        }
+        input[type="submit"] {
+            padding: 9px 16px;
+            font-size: 1em;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
-  <h1>Time Zone Comparison</h1>
+    <h1>City Time Viewer</h1>
 
-  <form method="post">
-    <input type="text" name="city" placeholder="Enter city timezone e.g. Europe/Warsaw" required />
-    <button type="submit">Get Time</button>
-  </form>
+    <div>
+        <strong>Your local time:</strong>
+        <div id="local-time" class="time-box">Loading...</div>
+    </div>
 
-  {% if city_time %}
-  <div class="result">
-    <div><strong>Your Local Time:</strong> <span id="local-time">Loading...</span></div>
-    <div><strong>{{ city_name }} Time:</strong> {{ city_time }}</div>
-  </div>
+    <form method="POST" style="margin-top: 30px;">
+        <label for="city">Enter city name (e.g., Warsaw, Berlin):</label><br/>
+        <input type="text" name="city" id="city" placeholder="City name" required
+               value="{{ city_name if city_name else '' }}"/>
+        <input type="submit" value="Get Time" />
+    </form>
 
-  <script>
-    function updateLocalTime() {
-      const now = new Date();
-      document.getElementById('local-time').textContent = now.toLocaleString();
-    }
-    updateLocalTime();
-    setInterval(updateLocalTime, 1000);
-  </script>
-  {% endif %}
+    {% if city_time %}
+    <div class="time-box" style="margin-top:20px;">
+        <strong>Time in {{ city_name|capitalize }}:</strong><br/>
+        {{ city_time }}
+    </div>
+    {% endif %}
+
+    {% if error %}
+    <div class="error">{{ error }}</div>
+    {% endif %}
+
+    <script>
+        function updateLocalTime() {
+            const localTimeElem = document.getElementById("local-time");
+            const now = new Date();
+            const day = String(now.getDate()).padStart(2, '0');
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const year = now.getFullYear();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            localTimeElem.textContent = `${day}.${month}.${year}, ${hours}:${minutes}:${seconds}`;
+        }
+        updateLocalTime();
+        setInterval(updateLocalTime, 1000);
+    </script>
 </body>
 </html>
