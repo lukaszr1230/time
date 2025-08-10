@@ -1,85 +1,96 @@
 from flask import Flask, render_template, request
 import requests
+from timezonefinder import TimezoneFinder
 from datetime import datetime
 import pytz
-from tzlocal import get_localzone
+import socket
 
 app = Flask(__name__)
+tf = TimezoneFinder()
 
-def get_city_timezone(city):
-    """Get the timezone for a given city using Nominatim + worldtimeapi."""
+def get_user_ip():
+    # Try to get user IP from headers (behind proxies)
+    if request.headers.getlist("X-Forwarded-For"):
+        ip = request.headers.getlist("X-Forwarded-For")[0]
+    else:
+        ip = request.remote_addr
+    return ip
+
+def get_timezone_from_ip(ip):
+    # Use free IP geolocation API that requires no signup
+    # Example: ip-api.com (limited but free, no key required)
     try:
-        # Step 1: Geocode city name to lat/lon
-        geo_url = "https://nominatim.openstreetmap.org/search"
-        geo_params = {"q": city, "format": "json", "limit": 1}
-        geo_headers = {"User-Agent": "time-comparison-app"}
-        geo_response = requests.get(geo_url, params=geo_params, headers=geo_headers)
-        geo_response.raise_for_status()
-        geo_data = geo_response.json()
-
-        if not geo_data:
-            return None, f"City '{city}' not found."
-
-        lat = geo_data[0]["lat"]
-        lon = geo_data[0]["lon"]
-
-        # Step 2: Get timezone from lat/lon
-        time_url = f"https://worldtimeapi.org/api/timezone"
-        tz_response = requests.get(time_url)
-        tz_response.raise_for_status()
-        all_timezones = tz_response.json()
-
-        # Find matching timezone by location (simplified - we use nearest guess)
-        tz_lookup_url = f"https://worldtimeapi.org/api/ip"
-        tz_lookup_response = requests.get(f"https://worldtimeapi.org/api/timezone/Etc/UTC")
-        tz_lookup_response.raise_for_status()
-
-        # Better approach: directly query time for given lat/lon using timeapi
-        tz_by_latlon = f"https://timeapi.io/api/TimeZone/coordinate?latitude={lat}&longitude={lon}"
-        tz_info_response = requests.get(tz_by_latlon)
-        if tz_info_response.status_code == 200:
-            tz_info = tz_info_response.json()
-            return tz_info.get("timeZone"), None
+        url = f"http://ip-api.com/json/{ip}"
+        resp = requests.get(url, timeout=5)
+        data = resp.json()
+        if data['status'] == 'success':
+            return data['timezone']
         else:
-            return None, "Could not find timezone for location."
+            return None
+    except:
+        return None
 
-    except Exception as e:
-        return None, f"Error: {e}"
-
-def get_time_for_timezone(tz_name):
-    """Fetch current time for a given timezone using worldtimeapi.org."""
+def get_city_coords(city):
+    url = "https://nominatim.openstreetmap.org/search"
+    params = {
+        "q": city,
+        "format": "json",
+        "limit": 1,
+    }
+    headers = {
+        "User-Agent": "timezone-comparison-app/1.0 (your_email@example.com)"
+    }
     try:
-        url = f"https://worldtimeapi.org/api/timezone/{tz_name}"
-        response = requests.get(url)
+        response = requests.get(url, params=params, headers=headers, timeout=10)
         response.raise_for_status()
-        data = response.json()
-        return data["datetime"]
-    except Exception:
+        results = response.json()
+        if results:
+            lat = float(results[0]["lat"])
+            lon = float(results[0]["lon"])
+            return lat, lon
+        else:
+            return None
+    except Exception as e:
         return None
 
 @app.route("/", methods=["GET", "POST"])
 def index():
+    city = None
     city_time = None
     local_time = None
+    time_diff = None
     error = None
 
     if request.method == "POST":
         city = request.form.get("city")
-        if city:
-            tz_name, error = get_city_timezone(city)
-            if tz_name:
-                # Get city time
-                city_time_str = get_time_for_timezone(tz_name)
-                if city_time_str:
-                    city_time = datetime.fromisoformat(city_time_str.replace("Z", "+00:00"))
-
-                # Get local time (server's time zone)
-                local_tz = get_localzone()
-                local_time = datetime.now(local_tz)
-        else:
+        if not city:
             error = "Please enter a city name."
+        else:
+            coords = get_city_coords(city)
+            if not coords:
+                error = f"Could not find coordinates for city '{city}'."
+            else:
+                lat, lon = coords
+                city_tz_name = tf.timezone_at(lat=lat, lng=lon)
+                if not city_tz_name:
+                    error = "Could not determine timezone for the city."
+                else:
+                    city_tz = pytz.timezone(city_tz_name)
+                    city_time = datetime.now(city_tz)
 
-    return render_template("index.html", city_time=city_time, local_time=local_time, error=error)
+                    # Get user local timezone
+                    user_ip = get_user_ip()
+                    user_tz_name = get_timezone_from_ip(user_ip)
+                    if not user_tz_name:
+                        user_tz_name = 'UTC'  # fallback
+                    user_tz = pytz.timezone(user_tz_name)
+                    local_time = datetime.now(user_tz)
+
+                    # Calculate time difference in hours
+                    diff = (city_time.utcoffset() - local_time.utcoffset()).total_seconds() / 3600
+                    time_diff = diff
+
+    return render_template("index.html", city=city, city_time=city_time, local_time=local_time, time_diff=time_diff, error=error)
 
 if __name__ == "__main__":
     app.run(debug=True)
