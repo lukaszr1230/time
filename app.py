@@ -1,21 +1,26 @@
 from flask import Flask, render_template, request
 import requests
+from datetime import datetime
 
 app = Flask(__name__)
-
-import requests
 
 def get_city_time(city):
     url = f"https://worldtimeapi.org/api/timezone/{city}"
     try:
-        resp = requests.get(url, timeout=5)  # add timeout
-        resp.raise_for_status()  # raise error on bad status codes
-        data = resp.json()
-        return data.get("datetime", "Unknown time")
-    except requests.exceptions.RequestException as e:
-        # log error if you want, then return friendly message
-        print(f"Error fetching time: {e}")
-        return "Could not get time"
+        resp = requests.get(url, timeout=5)
+        if resp.status_code == 200:
+            data = resp.json()
+            dt_str = data.get("datetime")
+            if dt_str:
+                # Parse datetime string and format it nicely
+                dt = datetime.fromisoformat(dt_str[:-6])  # remove timezone offset for simplicity
+                return dt.strftime("%d.%m.%Y, %H:%M:%S")
+            else:
+                return "Unknown time"
+        else:
+            return "Could not get time"
+    except requests.RequestException as e:
+        return f"Error: {e}"
 
 @app.route("/", methods=["GET", "POST"])
 def index():
